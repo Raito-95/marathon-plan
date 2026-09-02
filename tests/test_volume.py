@@ -86,3 +86,52 @@ def test_volume_config_rejects_impossible_values():
         Volume(start_weekly_km=60, peak_weekly_km=50).validate()
     with pytest.raises(Exception):
         Volume(start_weekly_km=40, peak_weekly_km=50, down_week_factor=1.5).validate()
+
+
+def test_peak_survives_when_the_loading_block_is_a_multiple_of_four(config):
+    """累積期剛好 4 的倍數時，峰值週不能被降量規則吃掉。"""
+    from dataclasses import replace
+
+    from plan.config import Phases
+
+    tuned = replace(
+        config,
+        phases=Phases(base=2, build=4, specific=2, taper=2),
+    )
+    weeks = volume.curve(tuned)
+
+    assert not schedule.is_down_week(tuned, tuned.phases.loading)
+    assert weeks[tuned.phases.loading - 1].weekly_km == pytest.approx(
+        tuned.volume.peak_weekly_km, abs=1
+    )
+
+
+def test_fewer_running_days_means_a_bigger_long_run_share(config):
+    """跑 4 天與跑 6 天的人，同樣週跑量下長跑佔比不該一樣。"""
+    from dataclasses import replace
+
+    four_days = replace(
+        config,
+        week_template=("rest", "easy", "strength", "quality", "rest", "recovery", "long"),
+    )
+    six_days = replace(
+        config,
+        week_template=("easy", "easy", "quality", "easy", "recovery", "easy", "long"),
+    )
+
+    four = volume.week_volume(four_days, 6)
+    six = volume.week_volume(six_days, 6)
+
+    assert four.long_run_km / four.weekly_km > six.long_run_km / six.weekly_km
+
+
+def test_long_run_never_takes_more_than_half_the_week(config):
+    from dataclasses import replace
+
+    three_days = replace(
+        config,
+        week_template=("rest", "easy", "rest", "quality", "rest", "rest", "long"),
+    )
+
+    for week in volume.curve(three_days):
+        assert week.long_run_km / week.weekly_km <= 0.51

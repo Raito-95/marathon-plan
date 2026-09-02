@@ -40,8 +40,13 @@ def clamp(config: PlanConfig, week: int) -> int:
 
 
 def is_down_week(config: PlanConfig, week: int) -> bool:
-    """三升一降：累積期每第 4 週降量，減量期不算在內。"""
-    return week <= config.phases.loading and week % 4 == 0
+    """三升一降：累積期每第 4 週降量。
+
+    累積期最後一週是整份課表的峰值，即使剛好落在第 4 的倍數也不降量，
+    否則跑量永遠到不了設定的 peak_weekly_km。
+    """
+    loading = config.phases.loading
+    return week < loading and week % 4 == 0
 
 
 def tune_ups_by_week(config: PlanConfig) -> dict[int, TuneUpRace]:

@@ -5,7 +5,11 @@ from dataclasses import dataclass
 from .config import PlanConfig
 from .schedule import is_down_week
 
+# 以每週跑 5 天為基準；跑得天數少，長跑自然佔更大比例。
 LONG_RUN_SHARE = {"base": 0.32, "build": 0.38, "specific": 0.45}
+BASELINE_RUN_DAYS = 5
+SHARE_SCALE_RANGE = (0.8, 1.35)
+MAX_LONG_RUN_SHARE = 0.50
 TAPER_WEEKLY_RANGE = (0.75, 0.35)
 TAPER_LONG_SHARE_RANGE = (0.38, 0.20)
 DAILY_WEIGHTS = {"easy": 0.35, "quality": 0.40, "recovery": 0.25}
@@ -49,13 +53,21 @@ def _taper_weekly_km(config: PlanConfig, phase_week: int) -> float:
     return config.volume.peak_weekly_km * factor
 
 
+def _share_scale(config: PlanConfig) -> float:
+    run_days = len(_running_slots(config)) + 1
+    low, high = SHARE_SCALE_RANGE
+    return max(low, min(high, BASELINE_RUN_DAYS / run_days))
+
+
 def _long_run_km(config: PlanConfig, phase: str, phase_week: int, weekly: int) -> int:
     if phase == "taper":
         share = _interpolate(TAPER_LONG_SHARE_RANGE, phase_week - 1, config.phases.taper)
     else:
         share = LONG_RUN_SHARE[phase]
+    share = min(share * _share_scale(config), MAX_LONG_RUN_SHARE)
     km = min(weekly * share, config.volume.max_long_run_km)
-    return max(1, min(int(round(km)), weekly - 1))
+    ceiling = int(weekly * MAX_LONG_RUN_SHARE)
+    return max(1, min(int(round(km)), ceiling, weekly - 1))
 
 
 def _running_slots(config: PlanConfig) -> list[tuple[int, str]]:
