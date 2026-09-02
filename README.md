@@ -23,6 +23,9 @@ python cli.py --format markdown --out plan.md
 **換強度依據** —— 有實測心率就給目標 bpm，有目標成績就給配速區間，兩個都沒有就退回感受式
 描述。同一份課表支援三種狀態。
 
+補給量也是算的，不是一句固定的提醒：依當週長跑的預估時間分級，給每小時醣類克數、
+吃第一份的時間點、間隔分鐘、水分，超過 2.5 小時再加鈉。比賽週改成賽前加賽中的版本。
+
 ## 兩個設計上的坑
 
 **排程時間會飄，週次判定不能天真。** 提醒排在台灣時間星期一早上，換算成 UTC 是星期日 23:00，
@@ -82,6 +85,8 @@ python cli.py --format markdown --out plan.md
 | `markdown` | 整份課表，含週次總覽與每週明細 |
 | `json` | 整份課表，給前端或其他工具 |
 
+每週的輸出都含補給建議與提醒。
+
 ```bash
 python cli.py                              # 當週，印到終端機
 python cli.py --date 2027-01-20            # 指定日期
@@ -121,6 +126,7 @@ plan/
   schedule.py    分期、週次與日期對齊
   volume.py      跑量曲線與每日分配
   workouts.py    每日課表文字
+  fueling.py     依長跑時間換算補給量
   intensity.py   心率與配速換算
   plan.py        組裝成 TrainingPlan
 outputs/

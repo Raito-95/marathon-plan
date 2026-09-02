@@ -4,7 +4,7 @@ from datetime import date
 import math
 
 from plan import schedule
-from plan.plan import DOWNGRADE_NOTE, FUEL_NOTE, INTENSITY_NOTES, TrainingPlan, WeekPlan
+from plan.plan import DOWNGRADE_NOTE, INTENSITY_NOTES, TrainingPlan, WeekPlan
 
 WEEKDAYS = "一二三四五六日"
 
@@ -58,9 +58,11 @@ def render_week(plan: TrainingPlan, week: WeekPlan, today: date) -> str:
         "強度說明：",
         INTENSITY_NOTES[week.phase],
         "",
+        "補給：",
+        week.fuel,
+        "",
         "執行原則：",
         DOWNGRADE_NOTE,
-        FUEL_NOTE,
         "",
         f"提醒：{week.reminder}",
     ]
