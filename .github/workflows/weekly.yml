@@ -20,8 +20,10 @@ jobs:
           LINE_TO_ID: ${{ secrets.LINE_TO_ID }}
           # 設了就用它，沒設就讀 data/plan.json
           PLAN_CONFIG: ${{ secrets.PLAN_CONFIG }}
-          MAX_HR: ${{ vars.MAX_HR }}
-          RESTING_HR: ${{ vars.RESTING_HR }}
-          MARATHON_GOAL: ${{ vars.MARATHON_GOAL }}
-          HALF_MARATHON_GOAL: ${{ vars.HALF_MARATHON_GOAL }}
+          # 心率與目標成績一律用 secrets：公開 repo 的 Actions log 誰都看得到，
+          # secrets 會被遮成 ***，variables 不會。
+          MAX_HR: ${{ secrets.MAX_HR }}
+          RESTING_HR: ${{ secrets.RESTING_HR }}
+          MARATHON_GOAL: ${{ secrets.MARATHON_GOAL }}
+          HALF_MARATHON_GOAL: ${{ secrets.HALF_MARATHON_GOAL }}
         run: python cli.py --send

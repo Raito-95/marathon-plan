@@ -96,8 +96,11 @@ python cli.py --send                       # 推播到 LINE
 
 `.github/workflows/weekly.yml` 每週推播一次。
 
-- secrets：`LINE_CHANNEL_ACCESS_TOKEN`、`LINE_TO_ID`，以及選用的 `PLAN_CONFIG`
-- variables：`MAX_HR`、`RESTING_HR`、`MARATHON_GOAL`、`HALF_MARATHON_GOAL`
+全部走 repository secrets：`LINE_CHANNEL_ACCESS_TOKEN`、`LINE_TO_ID`、`PLAN_CONFIG`、
+`MAX_HR`、`RESTING_HR`、`MARATHON_GOAL`、`HALF_MARATHON_GOAL`。
+
+心率與成績不是憑證，但公開 repo 的 Actions log 任何人都讀得到，而 secrets 會在 log 裡
+被遮成 `***`、variables 不會 —— 所以個人數據放 secrets 而不是 variables。
 
 沒有設 `PLAN_CONFIG` 就用 repo 裡的 `data/plan.json`。
 
