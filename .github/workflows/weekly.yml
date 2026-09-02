@@ -1,0 +1,25 @@
+name: Weekly Push
+
+on:
+  schedule:
+    # UTC 星期日 22:00 = 台灣星期一 06:00。排程會延遲，週次判定已經容許跨過午夜。
+    - cron: "0 22 * * 0"
+  workflow_dispatch:
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Send this week's plan
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_TO_ID: ${{ secrets.LINE_TO_ID }}
+          MAX_HR: ${{ vars.MAX_HR }}
+          RESTING_HR: ${{ vars.RESTING_HR }}
+          MARATHON_GOAL: ${{ vars.MARATHON_GOAL }}
+          HALF_MARATHON_GOAL: ${{ vars.HALF_MARATHON_GOAL }}
+        run: python cli.py --send
