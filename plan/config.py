@@ -245,18 +245,36 @@ def from_dict(data: dict[str, Any]) -> PlanConfig:
     )
 
 
-def load(path: Path) -> PlanConfig:
+def resolve(path: Path, env: dict[str, str] | None = None) -> PlanConfig:
+    """設定來源：PLAN_CONFIG 環境變數優先，沒有才讀檔。
+
+    部署到 CI 時，設定可以放 repository secret 或 variable，不必進版控。
+    """
+    env = os.environ if env is None else env
+    raw = env.get("PLAN_CONFIG")
+    if raw and raw.strip():
+        return apply_env(from_dict(_parse(raw, "PLAN_CONFIG")), env)
+    return load(path, env)
+
+
+def _parse(raw: str, label: str) -> dict[str, Any]:
+    try:
+        data = json.loads(raw)
+    except JSONDecodeError as exc:
+        raise ConfigError(f"{label} JSON 格式錯誤：第 {exc.lineno} 行") from exc
+    if not isinstance(data, dict):
+        raise ConfigError(f"{label} 必須是 JSON 物件")
+    return data
+
+
+def load(path: Path, env: dict[str, str] | None = None) -> PlanConfig:
     if not path.exists():
         raise ConfigError(f"設定檔不存在：{path}")
     try:
-        raw = json.loads(path.read_text(encoding="utf-8-sig"))
-    except JSONDecodeError as exc:
-        raise ConfigError(f"{path.name} JSON 格式錯誤：第 {exc.lineno} 行") from exc
+        text = path.read_text(encoding="utf-8-sig")
     except OSError as exc:
         raise ConfigError(f"{path.name} 無法讀取：{exc}") from exc
-    if not isinstance(raw, dict):
-        raise ConfigError(f"{path.name} 必須是 JSON 物件")
-    return apply_env(from_dict(raw))
+    return apply_env(from_dict(_parse(text, path.name)), env)
 
 
 def apply_env(config: PlanConfig, env: dict[str, str] | None = None) -> PlanConfig:

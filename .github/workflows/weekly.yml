@@ -18,6 +18,8 @@ jobs:
         env:
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_TO_ID: ${{ secrets.LINE_TO_ID }}
+          # 設了就用它，沒設就讀 data/plan.json
+          PLAN_CONFIG: ${{ secrets.PLAN_CONFIG }}
           MAX_HR: ${{ vars.MAX_HR }}
           RESTING_HR: ${{ vars.RESTING_HR }}
           MARATHON_GOAL: ${{ vars.MARATHON_GOAL }}

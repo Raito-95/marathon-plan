@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 
 from outputs import FORMATS, line as line_output
-from plan import build, load
+from plan import build, resolve
 from plan.config import ConfigError
 from plan.schedule import is_finished
 
@@ -16,7 +16,10 @@ DEFAULT_CONFIG = Path(__file__).resolve().parent / "data" / "plan.json"
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="產生馬拉松訓練課表。")
     parser.add_argument(
-        "--config", type=Path, default=DEFAULT_CONFIG, help="設定檔路徑。"
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG,
+        help="設定檔路徑；設了 PLAN_CONFIG 環境變數就以它為準。",
     )
     parser.add_argument(
         "--format",
@@ -37,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     today = args.date or date.today()
 
     try:
-        config = load(args.config)
+        config = resolve(args.config)
     except ConfigError as exc:
         print(f"錯誤：{exc}", file=sys.stderr)
         return 1

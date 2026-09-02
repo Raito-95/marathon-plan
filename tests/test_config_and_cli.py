@@ -126,3 +126,27 @@ def test_cli_refuses_to_send_non_text_formats(tmp_path, capsys):
         ["--config", str(path), "--date", "2026-12-09", "--format", "json", "--send"]
     ) == 1
     assert "只支援 text" in capsys.readouterr().err
+
+
+def test_plan_config_env_var_wins_over_the_file(tmp_path):
+    path = _write_config(tmp_path, race={"name": "檔案裡的比賽", "date": "2027-03-07"})
+    override = json.dumps(_raw(race={"name": "環境變數裡的比賽", "date": "2027-04-04"}))
+
+    from_file = config_module.resolve(path, {})
+    from_env = config_module.resolve(path, {"PLAN_CONFIG": override})
+
+    assert from_file.race.name == "檔案裡的比賽"
+    assert from_env.race.name == "環境變數裡的比賽"
+
+
+def test_blank_plan_config_falls_back_to_the_file(tmp_path):
+    path = _write_config(tmp_path)
+
+    assert config_module.resolve(path, {"PLAN_CONFIG": "   "}).race.name == "測試馬拉松"
+
+
+def test_broken_plan_config_env_var_is_reported(tmp_path):
+    path = _write_config(tmp_path)
+
+    with pytest.raises(ConfigError, match="PLAN_CONFIG"):
+        config_module.resolve(path, {"PLAN_CONFIG": "{"})

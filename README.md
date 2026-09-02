@@ -68,6 +68,9 @@ python cli.py --format markdown --out plan.md
 | `MAX_HR` / `RESTING_HR` | 實測最大 / 靜息心率，兩個都給才生效 |
 | `MARATHON_GOAL` | 目標完賽時間，`H:MM:SS` |
 | `HALF_MARATHON_GOAL` | 半馬目標，選填 |
+| `PLAN_CONFIG` | 整份設定的 JSON。設了就以它為準，不讀設定檔 |
+
+`PLAN_CONFIG` 是給 CI 用的：課表本身也算個人資訊，放 repository secret 就不必進版控，換週期時改那一個 secret 即可。
 
 ## 輸出
 
@@ -91,8 +94,12 @@ python cli.py --send                       # 推播到 LINE
 
 ## 排程
 
-`.github/workflows/weekly.yml` 每週推播一次。需要的 secrets 是
-`LINE_CHANNEL_ACCESS_TOKEN` 與 `LINE_TO_ID`，個人數據放 repository variables。
+`.github/workflows/weekly.yml` 每週推播一次。
+
+- secrets：`LINE_CHANNEL_ACCESS_TOKEN`、`LINE_TO_ID`，以及選用的 `PLAN_CONFIG`
+- variables：`MAX_HR`、`RESTING_HR`、`MARATHON_GOAL`、`HALF_MARATHON_GOAL`
+
+沒有設 `PLAN_CONFIG` 就用 repo 裡的 `data/plan.json`。
 
 ## 測試
 
