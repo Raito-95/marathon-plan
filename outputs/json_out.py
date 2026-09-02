@@ -47,6 +47,7 @@ def to_dict(plan: TrainingPlan, today: date) -> dict:
                 "weeklyKm": week.weekly_km_text,
                 "longRun": week.long_run_text,
                 "reminder": week.reminder,
+                "fuel": week.fuel,
                 "days": [
                     {
                         "day": day.day,

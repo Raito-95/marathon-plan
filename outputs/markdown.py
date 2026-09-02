@@ -61,7 +61,7 @@ def render(plan: TrainingPlan, today: date) -> str:
             lines.append(
                 f"| {day.day} | {day.title} | {day.duration} | {day.note} |"
             )
-        lines += ["", f"提醒：{week.reminder}", ""]
+        lines += ["", f"補給：{week.fuel}", "", f"提醒：{week.reminder}", ""]
 
     return "\n".join(lines)
 

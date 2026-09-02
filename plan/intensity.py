@@ -146,14 +146,24 @@ def build(athlete: Athlete) -> Targets:
 DEFAULT_MINUTES_PER_KM = {"easy": (6.5, 8.0), "long_run": (7.0, 8.5)}
 
 
-def duration_text(km: float, targets: Targets, key: str) -> str:
+def duration_range(km: float, targets: Targets, key: str) -> tuple[float, float]:
     band = targets.pace.get(key)
     if band is not None:
-        low, high = band.low / 60, band.high / 60
-    else:
-        low, high = DEFAULT_MINUTES_PER_KM.get(key, DEFAULT_MINUTES_PER_KM["easy"])
-    first = max(5, int(round(km * low / 5)) * 5)
-    second = max(5, int(round(km * high / 5)) * 5)
+        return km * band.low / 60, km * band.high / 60
+    low, high = DEFAULT_MINUTES_PER_KM.get(key, DEFAULT_MINUTES_PER_KM["easy"])
+    return km * low, km * high
+
+
+def duration_minutes(km: float, targets: Targets, key: str) -> int:
+    """取區間中點，給補給量分級用。"""
+    low, high = duration_range(km, targets, key)
+    return int(round((low + high) / 2))
+
+
+def duration_text(km: float, targets: Targets, key: str) -> str:
+    low, high = duration_range(km, targets, key)
+    first = max(5, int(round(low / 5)) * 5)
+    second = max(5, int(round(high / 5)) * 5)
     if first == second:
         return f"約 {first} 分鐘"
     return f"約 {first}-{second} 分鐘"

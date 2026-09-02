@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from . import intensity, schedule, volume, workouts
+from . import fueling, intensity, schedule, volume, workouts
 from .config import PlanConfig, TuneUpRace
 from .intensity import Targets
 from .workouts import DailyWorkout
@@ -55,7 +55,7 @@ INTENSITY_NOTES = {
 }
 
 DOWNGRADE_NOTE = "降階原則：主課跑不動就改輕鬆跑，長跑撐不住就縮短距離或分段走。"
-FUEL_NOTE = "補給策略：長跑超過 60 分鐘就開始補，之後每 30-40 分鐘一次。"
+
 
 
 @dataclass(frozen=True)
@@ -71,6 +71,7 @@ class WeekPlan:
     long_run_text: str
     days: tuple[DailyWorkout, ...]
     reminder: str
+    fuel: str
 
     @property
     def phase_name(self) -> str:
@@ -105,8 +106,8 @@ def _pre_post_cap(race: TuneUpRace) -> int:
 
 
 def _race_week(
-    config: PlanConfig, race: TuneUpRace
-) -> tuple[str, str, str, tuple[DailyWorkout, ...], str]:
+    config: PlanConfig, race: TuneUpRace, targets: Targets
+) -> tuple[str, str, str, tuple[DailyWorkout, ...], str, str]:
     shakeout = max(3, int(round(config.volume.peak_weekly_km * 0.06)))
     race_index = race.date.weekday()
 
@@ -163,6 +164,10 @@ def _race_week(
         f"約 {round(total)}K（含比賽 {_distance_text(race.distance_km)}）",
         tuple(days),
         "比賽週不練新東西：鞋子、衣服、補給都用練過的。",
+        fueling.race_day_advice(
+            race.distance_km,
+            intensity.duration_minutes(race.distance_km, targets, "marathon"),
+        ),
     )
 
 
@@ -257,8 +262,8 @@ def build(config: PlanConfig) -> TrainingPlan:
         start, end = schedule.week_dates(config, number)
 
         if number in races:
-            week_type, focus, weekly_text, days, reminder = _race_week(
-                config, races[number]
+            week_type, focus, weekly_text, days, reminder, fuel = _race_week(
+                config, races[number], targets
             )
             weeks.append(
                 WeekPlan(
@@ -275,6 +280,7 @@ def build(config: PlanConfig) -> TrainingPlan:
                     ),
                     days=days,
                     reminder=reminder,
+                    fuel=fuel,
                 )
             )
             continue
@@ -310,6 +316,7 @@ def build(config: PlanConfig) -> TrainingPlan:
             for index, role in enumerate(config.week_template)
         )
 
+        long_minutes = intensity.duration_minutes(long_run, targets, "long_run")
         is_final = number == config.total_weeks
         if is_final:
             days = tuple(
@@ -345,6 +352,16 @@ def build(config: PlanConfig) -> TrainingPlan:
                 ),
                 days=days,
                 reminder=REMINDERS[phase][(number - 1) % len(REMINDERS[phase])],
+                fuel=(
+                    fueling.race_day_advice(
+                        config.race.distance_km,
+                        intensity.duration_minutes(
+                            config.race.distance_km, targets, "marathon"
+                        ),
+                    )
+                    if is_final
+                    else fueling.long_run_advice(long_minutes)
+                ),
             )
         )
 
