@@ -6,7 +6,7 @@
 每日課表、目標心率與配速都是算出來的。無資料庫、無外部服務，執行期只用標準函式庫。
 
 ```bash
-python cli.py --format markdown --out plan.md
+uv run cli.py --format markdown --out plan.md
 ```
 
 ## 為什麼是設定驅動
@@ -88,11 +88,13 @@ python cli.py --format markdown --out plan.md
 每週的輸出都含補給建議與提醒。
 
 ```bash
-python cli.py                              # 當週，印到終端機
-python cli.py --date 2027-01-20            # 指定日期
-python cli.py --format json --out plan.json
-python cli.py --send                       # 推播到 LINE
+uv run cli.py                              # 當週，印到終端機
+uv run cli.py --date 2027-01-20            # 指定日期
+uv run cli.py --format json --out plan.json
+uv run cli.py --send                       # 推播到 LINE
 ```
+
+沒有 uv 的話 `python cli.py` 也可以 —— 執行期沒有任何第三方套件。
 
 `--send` 需要 `LINE_CHANNEL_ACCESS_TOKEN` 與 `LINE_TO_ID`，且只支援 `text`。
 比賽日過後不再推播，只印出週期已結束的提示。
@@ -112,8 +114,7 @@ python cli.py --send                       # 推播到 LINE
 ## 測試
 
 ```bash
-pip install -r requirements-dev.txt
-pytest
+uv run pytest
 ```
 
 covers 週次與日期對齊、跑量曲線的不變量、比賽週前後的調整、強度換算、三種輸出格式與 CLI。
@@ -132,4 +133,5 @@ plan/
 outputs/
   text.py markdown.py json_out.py line.py
 cli.py
+pyproject.toml
 ```
