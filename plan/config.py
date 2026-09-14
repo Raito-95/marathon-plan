@@ -40,6 +40,14 @@ class TuneUpRace:
 
 
 @dataclass(frozen=True)
+class TimeTrial:
+    """測驗課：只換掉當天的課，不像期中比賽會改寫前後幾週。"""
+
+    date: date
+    distance_km: float
+
+
+@dataclass(frozen=True)
 class Phases:
     base: int
     build: int
@@ -99,7 +107,10 @@ class Athlete:
 
     @property
     def has_goal(self) -> bool:
-        return self.marathon_goal_seconds is not None
+        return (
+            self.marathon_goal_seconds is not None
+            or self.half_marathon_goal_seconds is not None
+        )
 
 
 @dataclass(frozen=True)
@@ -110,6 +121,7 @@ class PlanConfig:
     week_template: tuple[str, ...]
     tune_up_races: tuple[TuneUpRace, ...] = ()
     athlete: Athlete = Athlete()
+    time_trials: tuple[TimeTrial, ...] = ()
 
     @property
     def total_weeks(self) -> int:
@@ -231,6 +243,22 @@ def from_dict(data: dict[str, Any]) -> PlanConfig:
         )
     )
 
+    trials_raw = data.get("time_trials") or []
+    if not isinstance(trials_raw, list):
+        raise ConfigError("time_trials 必須是陣列")
+    time_trials = tuple(
+        sorted(
+            (
+                TimeTrial(
+                    date=_as_date(item["date"], "time_trials.date"),
+                    distance_km=float(item["distance_km"]),
+                )
+                for item in trials_raw
+            ),
+            key=lambda trial: trial.date,
+        )
+    )
+
     return PlanConfig(
         race=Race(
             name=str(race_raw["name"]),
@@ -242,6 +270,7 @@ def from_dict(data: dict[str, Any]) -> PlanConfig:
         week_template=_template_from(data.get("week_template")),
         tune_up_races=tune_ups,
         athlete=_athlete_from(data.get("athlete")),
+        time_trials=time_trials,
     )
 
 

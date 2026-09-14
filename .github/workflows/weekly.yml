@@ -9,6 +9,18 @@ on:
 jobs:
   push:
     runs-on: ubuntu-latest
+    env:
+      # 設了就用它，沒設就讀 data/plan.json
+      PLAN_CONFIG: ${{ secrets.PLAN_CONFIG }}
+      # 心率與目標成績一律用 secrets：公開 repo 的 Actions log 誰都看得到，
+      # secrets 會被遮成 ***，variables 不會。
+      MAX_HR: ${{ secrets.MAX_HR }}
+      RESTING_HR: ${{ secrets.RESTING_HR }}
+      MARATHON_GOAL: ${{ secrets.MARATHON_GOAL }}
+      HALF_MARATHON_GOAL: ${{ secrets.HALF_MARATHON_GOAL }}
+      # 放在 job 層級，下面的 if 才讀得到；沒設就跳過同步。
+      INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+      INTERVALS_ATHLETE_ID: ${{ secrets.INTERVALS_ATHLETE_ID }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -18,12 +30,8 @@ jobs:
         env:
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_TO_ID: ${{ secrets.LINE_TO_ID }}
-          # 設了就用它，沒設就讀 data/plan.json
-          PLAN_CONFIG: ${{ secrets.PLAN_CONFIG }}
-          # 心率與目標成績一律用 secrets：公開 repo 的 Actions log 誰都看得到，
-          # secrets 會被遮成 ***，variables 不會。
-          MAX_HR: ${{ secrets.MAX_HR }}
-          RESTING_HR: ${{ secrets.RESTING_HR }}
-          MARATHON_GOAL: ${{ secrets.MARATHON_GOAL }}
-          HALF_MARATHON_GOAL: ${{ secrets.HALF_MARATHON_GOAL }}
         run: python cli.py --send
+      - name: Sync workouts to intervals.icu (→ COROS)
+        # LINE 推播失敗不該擋住手錶上的課。
+        if: ${{ !cancelled() && env.INTERVALS_API_KEY != '' }}
+        run: python cli.py --sync

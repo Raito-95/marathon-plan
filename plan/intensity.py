@@ -136,11 +136,20 @@ def build(athlete: Athlete) -> Targets:
         _hr_bands(athlete.max_hr, athlete.resting_hr) if athlete.has_heart_rate else {}
     )
     pace = (
-        _pace_bands(athlete.marathon_goal_seconds, athlete.half_marathon_goal_seconds)
+        _pace_bands(_marathon_seconds(athlete), athlete.half_marathon_goal_seconds)
         if athlete.has_goal
         else {}
     )
     return Targets(heart_rate=heart_rate, pace=pace)
+
+
+def _marathon_seconds(athlete: Athlete) -> int:
+    """只給半馬目標時，其他配速都從它換算的全馬等價成績推出來。"""
+    if athlete.marathon_goal_seconds is not None:
+        return athlete.marathon_goal_seconds
+    return equivalent_time(
+        athlete.half_marathon_goal_seconds, HALF_MARATHON_KM, MARATHON_KM
+    )
 
 
 DEFAULT_MINUTES_PER_KM = {"easy": (6.5, 8.0), "long_run": (7.0, 8.5)}

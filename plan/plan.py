@@ -4,7 +4,14 @@ from dataclasses import dataclass
 from datetime import date
 
 from . import fueling, intensity, schedule, volume, workouts
-from .config import PlanConfig, TuneUpRace
+from .config import (
+    HALF_MARATHON_KM,
+    MARATHON_KM,
+    ConfigError,
+    PlanConfig,
+    TimeTrial,
+    TuneUpRace,
+)
 from .intensity import Targets
 from .workouts import DailyWorkout
 
@@ -49,7 +56,7 @@ INTENSITY_NOTES = {
     "specific": (
         "輕鬆跑 / 恢復跑：刻意跑慢，這兩天的任務是恢復。\n"
         "長跑：用能從頭穩定跑到尾的節奏。\n"
-        "馬拉松節奏：比賽當天有把握撐完全程的節奏，明顯比間歇慢。"
+        "比賽節奏：比賽當天有把握撐完全程的節奏，明顯比間歇慢。"
     ),
     "taper": "所有跑步都刻意放輕；短段比賽節奏只用來喚醒身體，不跑到累。",
 }
@@ -114,7 +121,11 @@ def _race_week(
     days: list[DailyWorkout] = []
     for index, role in enumerate(config.week_template):
         if index == race_index:
-            days.append(workouts.race_day(index, race.name, _distance_text(race.distance_km)))
+            days.append(
+                workouts.race_day(
+                    index, race.name, _distance_text(race.distance_km), race.distance_km
+                )
+            )
         elif role == "rest":
             days.append(
                 DailyWorkout(
@@ -153,6 +164,7 @@ def _race_week(
                     f"輕鬆跑 {shakeout}K",
                     f"約 {shakeout * 7} 分鐘",
                     "維持腳感即可，不要在比賽週練體能。",
+                    (workouts.Step("輕鬆跑", km=shakeout, target="easy"),),
                 )
             )
 
@@ -166,8 +178,43 @@ def _race_week(
         "比賽週不練新東西：鞋子、衣服、補給都用練過的。",
         fueling.race_day_advice(
             race.distance_km,
-            intensity.duration_minutes(race.distance_km, targets, "marathon"),
+            intensity.duration_minutes(
+                race.distance_km, targets, workouts.race_pace_key(race.distance_km)
+            ),
         ),
+    )
+
+
+def _trials_by_week(
+    config: PlanConfig, races: dict[int, TuneUpRace]
+) -> dict[int, list[TimeTrial]]:
+    by_week: dict[int, list[TimeTrial]] = {}
+    for trial in config.time_trials:
+        label = f"time_trials 的 {trial.date.isoformat()}"
+        number = schedule.week_containing(config, trial.date)
+        if not 1 <= number < config.total_weeks:
+            raise ConfigError(f"{label} 不在比賽週之前的訓練週期內")
+        if number in races:
+            raise ConfigError(f"{label} 跟期中比賽同一週")
+        if config.week_template[trial.date.weekday()] == "long":
+            raise ConfigError(f"{label} 排在長跑日，請改排其他天")
+        by_week.setdefault(number, []).append(trial)
+    return by_week
+
+
+def _benchmark(config: PlanConfig, trial: TimeTrial) -> tuple[str, int] | None:
+    """把目標賽的目標成績換算成測驗距離的等價成績；沒有目標就不給。"""
+    athlete = config.athlete
+    is_half = workouts.race_pace_key(config.race.distance_km) == "half_marathon"
+    if is_half and athlete.half_marathon_goal_seconds is not None:
+        name, seconds, from_km = "半馬", athlete.half_marathon_goal_seconds, HALF_MARATHON_KM
+    elif athlete.marathon_goal_seconds is not None:
+        name, seconds, from_km = "全馬", athlete.marathon_goal_seconds, MARATHON_KM
+    else:
+        return None
+    return (
+        f"{name} {intensity.format_time(seconds)}",
+        intensity.equivalent_time(seconds, from_km, trial.distance_km),
     )
 
 
@@ -248,6 +295,8 @@ def _week_type_and_focus(
 def build(config: PlanConfig) -> TrainingPlan:
     targets = intensity.build(config.athlete)
     races = schedule.tune_ups_by_week(config)
+    trials = _trials_by_week(config, races)
+    race_pace = workouts.race_pace_key(config.race.distance_km)
     phase_lengths = {
         "base": config.phases.base,
         "build": config.phases.build,
@@ -312,16 +361,29 @@ def build(config: PlanConfig) -> TrainingPlan:
                 targets=targets,
                 is_down_week=is_down,
                 long_run_note=long_note if role == "long" else None,
+                race_pace=race_pace,
             )
             for index, role in enumerate(config.week_template)
         )
+
+        for trial in trials.get(number, ()):
+            index = trial.date.weekday()
+            test_day = workouts.time_trial(
+                index, trial.distance_km, targets, _benchmark(config, trial)
+            )
+            weekly_km += int(round(workouts.total_km(test_day.steps))) - daily[index]
+            days = days[:index] + (test_day,) + days[index + 1 :]
+            focus += f"{test_day.day}是 {trial.distance_km:g}K 測驗，成績用來確認比賽目標。"
 
         long_minutes = intensity.duration_minutes(long_run, targets, "long_run")
         is_final = number == config.total_weeks
         if is_final:
             days = tuple(
                 workouts.race_day(
-                    index, config.race.name, _distance_text(config.race.distance_km)
+                    index,
+                    config.race.name,
+                    _distance_text(config.race.distance_km),
+                    config.race.distance_km,
                 )
                 if role == "long"
                 else day
@@ -356,7 +418,7 @@ def build(config: PlanConfig) -> TrainingPlan:
                     fueling.race_day_advice(
                         config.race.distance_km,
                         intensity.duration_minutes(
-                            config.race.distance_km, targets, "marathon"
+                            config.race.distance_km, targets, race_pace
                         ),
                     )
                     if is_final

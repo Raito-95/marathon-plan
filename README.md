@@ -62,6 +62,19 @@ uv run cli.py --format markdown --out plan.md
 固定比例（基礎 32% / 建構 38% / 專項 45%），並受 `max_long_run_km` 限制。
 剩下的公里數按角色權重分給其他跑步日，**每週的每日距離加總一定等於週跑量**，有測試擋著。
 
+節奏跑練的是目標賽的配速：目標賽短於 30K（例如半馬）時，專項期與減量期的節奏段改成半馬節奏。
+半馬課表練馬拉松配速會慢十幾秒，等於從頭到尾沒練到比賽強度。
+
+測驗課放在 `time_trials`：
+
+```json
+"time_trials": [{ "date": "2026-10-15", "distance_km": 10 }]
+```
+
+只換掉當天的課（熱身 + 全力測驗 + 收操），前後幾週不動，當週跑量把多出來的距離算進去。
+有目標成績時，備註會寫出測驗距離的等價成績（Riegel 換算），跑不到就該把比賽目標往後調。
+不能排在長跑日、比賽週或期中比賽那週。
+
 ## 個人資料
 
 生理數據與目標成績建議放環境變數，設定檔就能公開：
@@ -70,7 +83,7 @@ uv run cli.py --format markdown --out plan.md
 | --- | --- |
 | `MAX_HR` / `RESTING_HR` | 實測最大 / 靜息心率，兩個都給才生效 |
 | `MARATHON_GOAL` | 目標完賽時間，`H:MM:SS` |
-| `HALF_MARATHON_GOAL` | 半馬目標，選填 |
+| `HALF_MARATHON_GOAL` | 半馬目標，選填。只給這個也可以，其他配速從它換算 |
 | `PLAN_CONFIG` | 整份設定的 JSON。設了就以它為準，不讀設定檔 |
 
 `PLAN_CONFIG` 是給 CI 用的：課表本身也算個人資訊，放 repository secret 就不必進版控，換週期時改那一個 secret 即可。
@@ -84,6 +97,7 @@ uv run cli.py --format markdown --out plan.md
 | `text` | 當週課表，給 LINE 或終端機 |
 | `markdown` | 整份課表，含週次總覽與每週明細 |
 | `json` | 整份課表，給前端或其他工具 |
+| `intervals` | 本週與下週的結構化課表，預覽 `--sync` 會上傳的內容 |
 
 每週的輸出都含補給建議與提醒。
 
@@ -92,6 +106,7 @@ uv run cli.py                              # 當週，印到終端機
 uv run cli.py --date 2027-01-20            # 指定日期
 uv run cli.py --format json --out plan.json
 uv run cli.py --send                       # 推播到 LINE
+uv run cli.py --sync                       # 上傳到 intervals.icu → COROS
 ```
 
 沒有 uv 的話 `python cli.py` 也可以 —— 執行期沒有任何第三方套件。
@@ -99,12 +114,32 @@ uv run cli.py --send                       # 推播到 LINE
 `--send` 需要 `LINE_CHANNEL_ACCESS_TOKEN` 與 `LINE_TO_ID`，且只支援 `text`。
 比賽日過後不再推播，只印出週期已結束的提示。
 
+## 同步到 COROS 手錶
+
+COROS 的 Training API 只開放給合作夥伴，官方 MCP 目前也只能讀資料，個人程式沒辦法直接把課推到手錶。
+所以走 intervals.icu 中轉：它是 COROS 的合作夥伴，個人帳號用 API key 就能寫入行事曆。
+
+1. intervals.icu → Settings → Connections 連結 COROS，勾選 **Upload planned workouts**。
+2. COROS App 的行事曆加入「Intervals.icu Training Plan」。
+3. intervals.icu → Settings → Developer Settings 產生 API key，設成 `INTERVALS_API_KEY`。
+4. 有給 `MAX_HR` 的話，intervals.icu 設定裡的跑步最大心率要填同一個數字（原因見下）。
+
+`--sync` 把本週與下週的跑步課上傳成結構化課表：熱身、每趟距離、組間恢復、重複次數、收操各自一段。
+休息日與肌力日不上傳。intervals.icu 再把接下來 7 天推到 COROS。
+
+- **強度目標一段只能一個**，心率優先、沒有才用配速、兩個都沒有就只有距離。
+  intervals.icu 不收絕對 bpm，只收最大心率的百分比，並用它自己設定的最大心率換算回 bpm。
+- **只動自己上傳的課。** `external_id` 帶 `marathon-plan-` 前綴；手動排的課不會被改或刪。
+  課表改了（換賽事、加期中賽），區間內不再需要的課會刪掉，重跑幾次結果都一樣。
+
 ## 排程
 
-`.github/workflows/weekly.yml` 每週推播一次。
+`.github/workflows/weekly.yml` 每週推播一次；有設 `INTERVALS_API_KEY` 就接著同步到 intervals.icu，
+LINE 推播失敗也照樣同步。
 
 全部走 repository secrets：`LINE_CHANNEL_ACCESS_TOKEN`、`LINE_TO_ID`、`PLAN_CONFIG`、
-`MAX_HR`、`RESTING_HR`、`MARATHON_GOAL`、`HALF_MARATHON_GOAL`。
+`MAX_HR`、`RESTING_HR`、`MARATHON_GOAL`、`HALF_MARATHON_GOAL`、`INTERVALS_API_KEY`，
+以及選填的 `INTERVALS_ATHLETE_ID`（預設 `0`，代表 API key 本人）。
 
 心率與成績不是憑證，但公開 repo 的 Actions log 任何人都讀得到，而 secrets 會在 log 裡
 被遮成 `***`、variables 不會 —— 所以個人數據放 secrets 而不是 variables。
@@ -126,12 +161,13 @@ plan/
   config.py      設定、驗證、環境變數覆寫
   schedule.py    分期、週次與日期對齊
   volume.py      跑量曲線與每日分配
-  workouts.py    每日課表文字
+  workouts.py    每日課表文字與手錶用的分段
   fueling.py     依長跑時間換算補給量
   intensity.py   心率與配速換算
   plan.py        組裝成 TrainingPlan
 outputs/
   text.py markdown.py json_out.py line.py
+  intervals.py   上傳到 intervals.icu（→ COROS）
 cli.py
 pyproject.toml
 ```
