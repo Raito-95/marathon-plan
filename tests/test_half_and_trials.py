@@ -18,17 +18,17 @@ from plan.config import (
 from plan.intensity import equivalent_time, format_time
 from plan.workouts import Repeat
 
-TRIAL = TimeTrial(date(2026, 10, 15), 10.0)  # 星期四，主課日
+TRIAL = TimeTrial(date(2027, 4, 15), 10.0)  # 星期四，主課日
 
 
 @pytest.fixture
 def half(config):
     return replace(
         config,
-        race=Race("測試半馬", date(2026, 11, 15), HALF_MARATHON_KM),
+        race=Race("測試半馬", date(2027, 5, 16), HALF_MARATHON_KM),
         phases=replace(config.phases, base=2, build=4, specific=2, taper=2),
         volume=replace(
-            config.volume, start_weekly_km=32, peak_weekly_km=44, max_long_run_km=20
+            config.volume, start_weekly_km=30, peak_weekly_km=42, max_long_run_km=18
         ),
         tune_up_races=(),
     )
@@ -64,10 +64,10 @@ def test_marathon_plan_keeps_marathon_pace(plan):
 
 
 def test_half_marathon_goal_alone_is_enough_for_paces(config):
-    plan = build(replace(config, athlete=Athlete(half_marathon_goal_seconds=2 * 3600)))
+    plan = build(replace(config, athlete=Athlete(half_marathon_goal_seconds=6600)))
     band = plan.targets.pace["half_marathon"]
 
-    assert band.low <= 2 * 3600 / HALF_MARATHON_KM <= band.high
+    assert band.low <= 6600 / HALF_MARATHON_KM <= band.high
     assert {"easy", "long_run", "quality", "marathon"} <= set(plan.targets.pace)
 
 
@@ -86,12 +86,12 @@ def test_time_trial_replaces_one_day_and_counts_toward_the_week(half):
 
 
 def test_time_trial_shows_what_the_goal_needs(half):
-    athlete = Athlete(half_marathon_goal_seconds=2 * 3600)
+    athlete = Athlete(half_marathon_goal_seconds=6600)
     _, day = _trial_day(build(replace(half, time_trials=(TRIAL,), athlete=athlete)))
 
-    needed = format_time(equivalent_time(2 * 3600, HALF_MARATHON_KM, 10.0))
+    needed = format_time(equivalent_time(6600, HALF_MARATHON_KM, 10.0))
     assert f"跑進 {needed}" in day.note
-    assert "半馬 2:00:00" in day.note
+    assert "半馬 1:50:00" in day.note
 
 
 def test_time_trial_without_a_goal_gives_no_benchmark(half):
@@ -103,8 +103,8 @@ def test_time_trial_without_a_goal_gives_no_benchmark(half):
 @pytest.mark.parametrize(
     "when",
     [
-        date(2026, 11, 12),  # 比賽週
-        date(2026, 10, 18),  # 長跑日
+        date(2027, 5, 13),  # 比賽週
+        date(2027, 4, 18),  # 長跑日
         date(2026, 1, 1),    # 週期開始之前
     ],
 )
@@ -124,9 +124,9 @@ def test_time_trial_cannot_share_a_week_with_a_tune_up_race(config):
 def test_time_trials_parse_from_config():
     parsed = from_dict(
         {
-            "race": {"name": "測試半馬", "date": "2026-11-15", "distance_km": 21.0975},
-            "volume": {"start_weekly_km": 32, "peak_weekly_km": 44},
-            "time_trials": [{"date": "2026-10-15", "distance_km": 10}],
+            "race": {"name": "測試半馬", "date": "2027-05-16", "distance_km": 21.0975},
+            "volume": {"start_weekly_km": 30, "peak_weekly_km": 42},
+            "time_trials": [{"date": "2027-04-15", "distance_km": 10}],
         }
     )
 

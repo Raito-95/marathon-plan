@@ -68,7 +68,7 @@ uv run cli.py --format markdown --out plan.md
 測驗課放在 `time_trials`：
 
 ```json
-"time_trials": [{ "date": "2026-10-15", "distance_km": 10 }]
+"time_trials": [{ "date": "2026-12-10", "distance_km": 10 }]
 ```
 
 只換掉當天的課（熱身 + 全力測驗 + 收操），前後幾週不動，當週跑量把多出來的距離算進去。

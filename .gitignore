@@ -5,3 +5,4 @@ __pycache__/
 venv/
 data/*.local.json
 out/
+plan.md

@@ -60,13 +60,13 @@ def test_steady_runs_match_the_planned_distance(plan):
 
 
 def test_heart_rate_is_preferred_and_sent_as_percent_of_max(config):
-    athlete = Athlete(max_hr=190, resting_hr=50, marathon_goal_seconds=4 * 3600)
+    athlete = Athlete(max_hr=180, resting_hr=40, marathon_goal_seconds=4 * 3600)
     plan = build(replace(config, athlete=athlete))
     band = plan.targets.heart_rate["easy"]
 
     text = intervals.target_text(plan, "easy")
 
-    assert text == f" {round(band.low / 190 * 100)}-{round(band.high / 190 * 100)}% HR"
+    assert text == f" {round(band.low / 180 * 100)}-{round(band.high / 180 * 100)}% HR"
     assert "bpm" not in text
 
 
