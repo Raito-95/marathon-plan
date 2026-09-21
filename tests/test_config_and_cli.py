@@ -150,3 +150,25 @@ def test_broken_plan_config_env_var_is_reported(tmp_path):
 
     with pytest.raises(ConfigError, match="PLAN_CONFIG"):
         config_module.resolve(path, {"PLAN_CONFIG": "{"})
+
+
+def test_plan_config_env_var_tolerates_a_bom(tmp_path):
+    """貼進 secret 的設定常常帶著 BOM，讀檔那條路用 utf-8-sig 也是同樣的容忍。"""
+    path = _write_config(tmp_path)
+    raw = json.dumps(_raw(race={"name": "帶 BOM 的比賽", "date": "2027-04-04"}))
+
+    parsed = config_module.resolve(path, {"PLAN_CONFIG": "﻿" + raw})
+
+    assert parsed.race.name == "帶 BOM 的比賽"
+
+
+def test_broken_plan_config_says_where_and_why(tmp_path):
+    """只給行號看不出哪裡壞；欄位與原因都要在，才有辦法從 CI log 判斷。"""
+    path = _write_config(tmp_path)
+
+    with pytest.raises(ConfigError) as caught:
+        config_module.resolve(path, {"PLAN_CONFIG": '{"race": {}'})
+
+    message = str(caught.value)
+    assert "第 1 行第 12 欄" in message
+    assert "Expecting ',' delimiter" in message

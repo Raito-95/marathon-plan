@@ -287,10 +287,14 @@ def resolve(path: Path, env: dict[str, str] | None = None) -> PlanConfig:
 
 
 def _parse(raw: str, label: str) -> dict[str, Any]:
+    # 讀檔那條路用 utf-8-sig 吃掉 BOM；貼進環境變數的設定一樣可能帶著，這裡補上。
     try:
-        data = json.loads(raw)
+        data = json.loads(raw.encode("utf-8").decode("utf-8-sig"))
     except JSONDecodeError as exc:
-        raise ConfigError(f"{label} JSON 格式錯誤：第 {exc.lineno} 行") from exc
+        # 帶上欄位與原因才看得出哪裡壞；secret 內容不會進錯誤訊息，CI log 可以照印。
+        raise ConfigError(
+            f"{label} JSON 格式錯誤：第 {exc.lineno} 行第 {exc.colno} 欄：{exc.msg}"
+        ) from exc
     if not isinstance(data, dict):
         raise ConfigError(f"{label} 必須是 JSON 物件")
     return data
