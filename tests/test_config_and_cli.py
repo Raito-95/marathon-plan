@@ -172,3 +172,24 @@ def test_broken_plan_config_says_where_and_why(tmp_path):
     message = str(caught.value)
     assert "第 1 行第 12 欄" in message
     assert "Expecting ',' delimiter" in message
+
+
+def test_the_shipped_config_builds():
+    """data/plan.json 換賽事時的把關：不綁內容，只驗它真的能產出完整課表。
+
+    測試主體用 conftest 的固定設定，所以這裡是唯一會碰到真實課表的地方。
+    """
+    from pathlib import Path
+
+    from plan import build
+    from plan.schedule import week_dates
+
+    shipped = Path(__file__).resolve().parent.parent / "data" / "plan.json"
+    parsed = config_module.load(shipped)
+    built = build(parsed)
+
+    assert len(built.weeks) == parsed.total_weeks
+    assert parsed.total_weeks == parsed.phases.total
+    assert all(len(week.days) == 7 for week in built.weeks)
+    # 最後一週的星期日就是比賽日。
+    assert week_dates(parsed, parsed.total_weeks)[1] == parsed.race.date

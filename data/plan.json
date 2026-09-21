@@ -1,24 +1,25 @@
 {
   "race": {
-    "name": "2027 東京馬拉松",
-    "date": "2027-03-07",
-    "distance_km": 42.195
+    "name": "11/15 半程馬拉松",
+    "date": "2026-11-15",
+    "distance_km": 21.0975
   },
   "block": {
-    "weeks": 18,
-    "phases": { "base": 4, "build": 6, "specific": 5, "taper": 3 }
+    "weeks": 8,
+    "phases": { "base": 1, "build": 3, "specific": 3, "taper": 1 }
   },
   "volume": {
-    "start_weekly_km": 40,
-    "peak_weekly_km": 65,
+    "start_weekly_km": 32,
+    "peak_weekly_km": 44,
     "down_week_factor": 0.78,
-    "max_long_run_km": 32
+    "max_long_run_km": 18
   },
   "week_template": [
     "rest", "easy", "strength", "quality", "rest", "recovery", "long"
   ],
-  "tune_up_races": [
-    { "name": "半程馬拉松", "date": "2027-01-24", "distance_km": 21.0975 }
+  "tune_up_races": [],
+  "time_trials": [
+    { "date": "2026-10-22", "distance_km": 10 }
   ],
   "athlete": {
     "max_hr": null,
