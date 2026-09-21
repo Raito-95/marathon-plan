@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from plan import workouts
 from plan.plan import TrainingPlan
 
 
@@ -24,7 +25,7 @@ def render(plan: TrainingPlan, today: date) -> str:
     for race in config.tune_up_races:
         lines.append(f"- 期中比賽：{race.name}（{race.date.isoformat()}）")
 
-    targets = plan.targets.summary_lines(config.athlete)
+    targets = plan.targets.summary_lines(config.athlete, workouts.race_pace_key(config.race.distance_km))
     if targets:
         lines += ["", "## 強度目標", ""]
         lines += [f"- {line}" for line in targets]

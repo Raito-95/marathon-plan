@@ -124,7 +124,7 @@ def _rest(index: int) -> DailyWorkout:
     )
 
 
-def _strength(index: int, phase: str) -> DailyWorkout:
+def _strength(index: int, phase: str, is_down_week: bool = False) -> DailyWorkout:
     table = {
         "base": ("基礎肌力 + 核心", "15-20 分鐘", "以徒手動作建立習慣與穩定度。"),
         "build": ("肌力 + 核心", "25-30 分鐘", "跑量拉高後更需要臀腿穩定度，不要做到力竭。"),
@@ -132,6 +132,9 @@ def _strength(index: int, phase: str) -> DailyWorkout:
         "taper": ("輕量肌力 + 活動度", "10-15 分鐘", "以放鬆與維持啟動感為主。"),
     }
     title, duration, note = table[phase]
+    if is_down_week:
+        # 降量週跑量是往下收的，沿用累積期那句「跑量拉高後」會自相矛盾。
+        note = "降量週一樣照做，維持穩定度就好，不要做到力竭。"
     return DailyWorkout(WEEKDAY_NAMES[index], "strength", title, duration, note)
 
 
@@ -310,7 +313,7 @@ def build_day(
     if role == "rest":
         return _rest(index)
     if role == "strength":
-        return _strength(index, phase)
+        return _strength(index, phase, is_down_week)
     if role == "easy":
         return _easy(index, km, phase, targets)
     if role == "recovery":
@@ -336,7 +339,7 @@ def time_trial(
     if benchmark is not None:
         goal, seconds = benchmark
         note += (
-            f"跑進 {format_time(seconds)} 代表{goal}的目標有機會；"
+            f"跑進 {format_time(seconds)} 代表{goal} 的目標有機會；"
             "明顯慢的話，比賽目標往後調，不要硬撐。"
         )
     return DailyWorkout(

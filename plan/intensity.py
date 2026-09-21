@@ -54,6 +54,8 @@ def _pace(seconds: int) -> str:
 def format_time(total_seconds: int) -> str:
     hours, rest = divmod(int(total_seconds), 3600)
     minutes, seconds = divmod(rest, 60)
+    if not hours:
+        return f"{minutes}:{seconds:02d}"
     return f"{hours}:{minutes:02d}:{seconds:02d}"
 
 
@@ -79,13 +81,16 @@ class Targets:
     def is_empty(self) -> bool:
         return not self.heart_rate and not self.pace
 
-    def summary_lines(self, athlete: Athlete) -> list[str]:
+    def summary_lines(
+        self, athlete: Athlete, race_pace: str | None = None
+    ) -> list[str]:
         if self.is_empty:
             return []
+        skip = {"marathon", "half_marathon"} - {race_pace} if race_pace else set()
         lines = [
             f"{LABELS[key]} {self.text_for(key)}"
             for key in KEYS
-            if self.text_for(key)
+            if key not in skip and self.text_for(key)
         ]
         if athlete.has_heart_rate:
             lines.append(

@@ -1,9 +1,11 @@
 # marathon-plan
 
-把馬拉松訓練課表寫成可運算的設定，而不是一份固定的 PDF。
+把備賽課表寫成可運算的設定，而不是一份固定的 PDF。全馬與半馬都適用 ——
+節奏跑練的是目標賽的配速，由 `race.distance_km` 決定。
 
-給比賽日、起始週跑量與峰值週跑量，產生一份備賽課表（週數由 `block.phases` 決定）—— 分期、三升一降的跑量曲線、
-每日課表、目標心率與配速都是算出來的。無資料庫、無外部服務，執行期只用標準函式庫。
+給比賽日、起始週跑量與峰值週跑量就能產生一份，週數由 `block.phases` 決定 —— 分期、
+三升一降的跑量曲線、每日課表、目標心率與配速都是算出來的。
+無資料庫、無外部服務，執行期只用標準函式庫。
 
 ```bash
 uv run cli.py --format markdown --out plan.md
@@ -151,7 +153,7 @@ LINE 推播失敗也照樣同步。
 uv run pytest
 ```
 
-covers 週次與日期對齊、跑量曲線的不變量、比賽週前後的調整、強度換算、三種輸出格式與 CLI。
+涵蓋週次與日期對齊、跑量曲線的不變量、比賽週前後的調整、強度換算、各輸出格式與 CLI。
 
 ## 結構
 
@@ -165,8 +167,13 @@ plan/
   intensity.py   心率與配速換算
   plan.py        組裝成 TrainingPlan
 outputs/
-  text.py markdown.py json_out.py line.py
+  text.py        當週課表，LINE 與終端機用
+  markdown.py    整份課表
+  json_out.py    整份課表的 JSON
+  line.py        LINE push API
   intervals.py   上傳到 intervals.icu（→ COROS）
+data/
+  plan.json      課表設定
+tests/
 cli.py
-pyproject.toml
 ```

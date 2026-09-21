@@ -4,6 +4,7 @@ from dataclasses import asdict
 from datetime import date
 import json
 
+from plan import workouts
 from plan.plan import TrainingPlan
 
 
@@ -33,7 +34,7 @@ def to_dict(plan: TrainingPlan, today: date) -> dict:
             }
             for race in config.tune_up_races
         ],
-        "targets": plan.targets.summary_lines(config.athlete),
+        "targets": plan.targets.summary_lines(config.athlete, workouts.race_pace_key(config.race.distance_km)),
         "currentWeek": plan.week_for(today).week,
         "weeks": [
             {

@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import date
 import math
 
-from plan import schedule
+from plan import schedule, workouts
+from plan.intensity import LABELS
 from plan.plan import DOWNGRADE_NOTE, INTENSITY_NOTES, TrainingPlan, WeekPlan
 
 WEEKDAYS = "一二三四五六日"
@@ -49,14 +50,15 @@ def render_week(plan: TrainingPlan, week: WeekPlan, today: date) -> str:
         lines.append(f"{day.day}｜{day.title}｜{day.duration}")
         lines.append(f"  {day.note}")
 
-    targets = plan.targets.summary_lines(config.athlete)
+    race_pace = workouts.race_pace_key(config.race.distance_km)
+    targets = plan.targets.summary_lines(config.athlete, race_pace)
     if targets:
         lines += ["", "強度目標：", *targets]
 
     lines += [
         "",
         "強度說明：",
-        INTENSITY_NOTES[week.phase],
+        INTENSITY_NOTES[week.phase].format(race_pace=LABELS[race_pace]),
         "",
         "補給：",
         week.fuel,
