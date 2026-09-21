@@ -10,7 +10,7 @@ import cli
 from outputs import intervals
 from plan import build, schedule
 from plan.config import Athlete
-from plan.workouts import Repeat, Step, total_km
+from plan.workouts import Repeat, total_km
 
 RUN_ROLES = {"easy", "recovery", "quality", "long", "race", "test"}
 

@@ -134,6 +134,3 @@ def week_volume(config: PlanConfig, week: int) -> WeekVolume:
         daily_km=tuple(daily),
     )
 
-
-def curve(config: PlanConfig) -> list[WeekVolume]:
-    return [week_volume(config, week) for week in range(1, config.total_weeks + 1)]

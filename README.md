@@ -2,7 +2,7 @@
 
 把馬拉松訓練課表寫成可運算的設定，而不是一份固定的 PDF。
 
-給比賽日、起始週跑量與峰值週跑量，產生一份 18 週備賽課表 —— 分期、三升一降的跑量曲線、
+給比賽日、起始週跑量與峰值週跑量，產生一份備賽課表（週數由 `block.phases` 決定）—— 分期、三升一降的跑量曲線、
 每日課表、目標心率與配速都是算出來的。無資料庫、無外部服務，執行期只用標準函式庫。
 
 ```bash
@@ -43,13 +43,12 @@ uv run cli.py --format markdown --out plan.md
 
 ```json
 {
-  "race": { "name": "2027 東京馬拉松", "date": "2027-03-07", "distance_km": 42.195 },
-  "block": { "weeks": 18, "phases": { "base": 4, "build": 6, "specific": 5, "taper": 3 } },
-  "volume": { "start_weekly_km": 40, "peak_weekly_km": 65, "max_long_run_km": 32 },
+  "race": { "name": "11/15 半程馬拉松", "date": "2026-11-15", "distance_km": 21.0975 },
+  "block": { "weeks": 8, "phases": { "base": 1, "build": 3, "specific": 3, "taper": 1 } },
+  "volume": { "start_weekly_km": 32, "peak_weekly_km": 44, "max_long_run_km": 18 },
   "week_template": ["rest", "easy", "strength", "quality", "rest", "recovery", "long"],
-  "tune_up_races": [
-    { "name": "半程馬拉松", "date": "2027-01-24", "distance_km": 21.0975 }
-  ]
+  "tune_up_races": [],
+  "time_trials": [{ "date": "2026-10-22", "distance_km": 10 }]
 }
 ```
 
@@ -68,7 +67,7 @@ uv run cli.py --format markdown --out plan.md
 測驗課放在 `time_trials`：
 
 ```json
-"time_trials": [{ "date": "2026-12-10", "distance_km": 10 }]
+"time_trials": [{ "date": "2026-10-22", "distance_km": 10 }]
 ```
 
 只換掉當天的課（熱身 + 全力測驗 + 收操），前後幾週不動，當週跑量把多出來的距離算進去。
@@ -82,7 +81,7 @@ uv run cli.py --format markdown --out plan.md
 | 變數 | 說明 |
 | --- | --- |
 | `MAX_HR` / `RESTING_HR` | 實測最大 / 靜息心率，兩個都給才生效 |
-| `MARATHON_GOAL` | 目標完賽時間，`H:MM:SS` |
+| `MARATHON_GOAL` | 目標完賽時間，`H:MM:SS`。**優先於 `HALF_MARATHON_GOAL`** —— 備半馬時要清掉，否則輕鬆跑與主課配速仍從全馬目標換算 |
 | `HALF_MARATHON_GOAL` | 半馬目標，選填。只給這個也可以，其他配速從它換算 |
 | `PLAN_CONFIG` | 整份設定的 JSON。設了就以它為準，不讀設定檔 |
 
@@ -103,7 +102,7 @@ uv run cli.py --format markdown --out plan.md
 
 ```bash
 uv run cli.py                              # 當週，印到終端機
-uv run cli.py --date 2027-01-20            # 指定日期
+uv run cli.py --date 2026-10-22            # 指定日期
 uv run cli.py --format json --out plan.json
 uv run cli.py --send                       # 推播到 LINE
 uv run cli.py --sync                       # 上傳到 intervals.icu → COROS

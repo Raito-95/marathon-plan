@@ -20,10 +20,5 @@
   "tune_up_races": [],
   "time_trials": [
     { "date": "2026-10-22", "distance_km": 10 }
-  ],
-  "athlete": {
-    "max_hr": null,
-    "resting_hr": null,
-    "goal_times": { "marathon": null, "half_marathon": null }
-  }
+  ]
 }

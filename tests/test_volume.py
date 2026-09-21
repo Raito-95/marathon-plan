@@ -5,17 +5,22 @@ from dataclasses import replace
 import pytest
 
 from plan import schedule, volume
-from plan.config import Volume
+from plan.config import PlanConfig, Volume
+
+
+def curve(config: PlanConfig) -> list[volume.WeekVolume]:
+    """整個區塊每一週的跑量；只有測試需要攤平成一份清單。"""
+    return [volume.week_volume(config, week) for week in range(1, config.total_weeks + 1)]
 
 
 def test_daily_distances_always_sum_to_the_weekly_total(config):
-    for week in volume.curve(config):
+    for week in curve(config):
         assert sum(week.daily_km) == week.weekly_km, f"第 {week.week} 週對不起來"
 
 
 def test_rest_and_strength_days_carry_no_distance(config):
     long_index = config.week_template.index("long")
-    for week in volume.curve(config):
+    for week in curve(config):
         for index, role in enumerate(config.week_template):
             if role in {"rest", "strength"}:
                 assert week.daily_km[index] == 0
@@ -25,7 +30,7 @@ def test_rest_and_strength_days_carry_no_distance(config):
 
 
 def test_volume_starts_and_peaks_where_configured(config):
-    weeks = volume.curve(config)
+    weeks = curve(config)
 
     assert weeks[0].weekly_km == pytest.approx(config.volume.start_weekly_km, abs=1)
     peak = max(week.weekly_km for week in weeks)
@@ -33,14 +38,14 @@ def test_volume_starts_and_peaks_where_configured(config):
 
 
 def test_peak_lands_on_the_last_loading_week(config):
-    weeks = volume.curve(config)
+    weeks = curve(config)
     loading = [week for week in weeks if week.week <= config.phases.loading]
 
     assert max(loading, key=lambda week: week.weekly_km).week == config.phases.loading
 
 
 def test_down_weeks_are_lighter_than_the_week_before(config):
-    weeks = {week.week: week for week in volume.curve(config)}
+    weeks = {week.week: week for week in curve(config)}
 
     for number in weeks:
         if schedule.is_down_week(config, number) and number > 1:
@@ -49,7 +54,7 @@ def test_down_weeks_are_lighter_than_the_week_before(config):
 
 def test_taper_descends_every_week(config):
     taper = [
-        week for week in volume.curve(config) if week.week > config.phases.loading
+        week for week in curve(config) if week.week > config.phases.loading
     ]
     volumes = [week.weekly_km for week in taper]
 
@@ -61,12 +66,12 @@ def test_long_run_never_exceeds_the_cap(config):
         config, volume=replace(config.volume, max_long_run_km=25)
     )
 
-    for week in volume.curve(capped):
+    for week in curve(capped):
         assert week.long_run_km <= 25
 
 
 def test_long_run_stays_below_the_weekly_total(config):
-    for week in volume.curve(config):
+    for week in curve(config):
         assert 0 < week.long_run_km < week.weekly_km
 
 
@@ -74,8 +79,8 @@ def test_higher_peak_produces_a_bigger_plan(config):
     small = replace(config, volume=replace(config.volume, peak_weekly_km=50))
     large = replace(config, volume=replace(config.volume, peak_weekly_km=90))
 
-    assert sum(w.weekly_km for w in volume.curve(small)) < sum(
-        w.weekly_km for w in volume.curve(large)
+    assert sum(w.weekly_km for w in curve(small)) < sum(
+        w.weekly_km for w in curve(large)
     )
 
 
@@ -98,7 +103,7 @@ def test_peak_survives_when_the_loading_block_is_a_multiple_of_four(config):
         config,
         phases=Phases(base=2, build=4, specific=2, taper=2),
     )
-    weeks = volume.curve(tuned)
+    weeks = curve(tuned)
 
     assert not schedule.is_down_week(tuned, tuned.phases.loading)
     assert weeks[tuned.phases.loading - 1].weekly_km == pytest.approx(
@@ -133,5 +138,5 @@ def test_long_run_never_takes_more_than_half_the_week(config):
         week_template=("rest", "easy", "rest", "quality", "rest", "rest", "long"),
     )
 
-    for week in volume.curve(three_days):
+    for week in curve(three_days):
         assert week.long_run_km / week.weekly_km <= 0.51
