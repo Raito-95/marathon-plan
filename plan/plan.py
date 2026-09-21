@@ -65,6 +65,10 @@ DOWNGRADE_NOTE = "降階原則：主課跑不動就改輕鬆跑，長跑撐不�
 
 
 
+# 標題要等時間測驗把當週跑量改掉之後才填得出正確數字，先留這個位子。
+WEEKLY_SLOT = "{weekly}"
+
+
 @dataclass(frozen=True)
 class WeekPlan:
     week: int
@@ -273,7 +277,7 @@ def _week_type_and_focus(
     if schedule.is_down_week(config, week):
         return (
             "降量週",
-            f"降量週，週跑量收在 {week_volume.weekly_km}K，讓身體吸收前幾週訓練。",
+            f"降量週，週跑量收在 {{weekly}}K，讓身體吸收前幾週訓練。",
             long_run,
             long_note,
         )
@@ -286,7 +290,7 @@ def _week_type_and_focus(
     }[phase]
     return (
         "訓練週",
-        f"{headline}：週跑量 {week_volume.weekly_km}K，長跑 {long_run}K。",
+        f"{headline}：週跑量 {{weekly}}K，長跑 {long_run}K。",
         long_run,
         long_note,
     )
@@ -402,7 +406,7 @@ def build(config: PlanConfig) -> TrainingPlan:
                 focus=(
                     f"{config.race.name}就在本週日，前段保守，照補給計畫執行。"
                     if is_final
-                    else focus
+                    else focus.replace(WEEKLY_SLOT, str(weekly_km))
                 ),
                 weekly_km_text=(
                     f"{weekly_km}K（不含比賽）" if is_final else f"{weekly_km}K"

@@ -6,7 +6,7 @@ from datetime import date
 import pytest
 
 from outputs import intervals
-from plan import build, schedule
+from plan import build, schedule, volume
 from plan.config import (
     HALF_MARATHON_KM,
     Athlete,
@@ -139,3 +139,15 @@ def test_time_trial_uploads_with_its_own_name(half):
 
     names = [event["name"] for event in intervals.week_events(plan, week)]
     assert "10K 測驗" in names
+
+
+def test_time_trial_week_headline_matches_the_actual_total(half):
+    """測驗把當天換成更長的課，標題的跑量要跟著改，不能還停在計畫值。"""
+    with_trial = replace(half, time_trials=(TRIAL,))
+    week, _ = _trial_day(build(with_trial))
+    planned = volume.week_volume(with_trial, week.week).weekly_km
+
+    assert "{weekly}" not in week.focus
+    assert week.weekly_km_text in week.focus
+    assert int(week.weekly_km_text.rstrip("K")) > planned
+    assert f"{planned}K" not in week.focus
