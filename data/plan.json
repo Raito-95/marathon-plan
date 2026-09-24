@@ -8,15 +8,15 @@
     "weeks": 10,
     "phases": {
       "base": 2,
-      "build": 4,
-      "specific": 2,
+      "build": 3,
+      "specific": 3,
       "taper": 2
     }
   },
   "volume": {
     "start_weekly_km": 32,
     "peak_weekly_km": 44,
-    "max_long_run_km": 20
+    "max_long_run_km": 18
   },
   "week_template": ["rest", "easy", "strength", "quality", "rest", "recovery", "long"],
   "tune_up_races": [],
