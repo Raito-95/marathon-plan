@@ -102,6 +102,30 @@ def _intervals(reps: int) -> Repeat:
     )
 
 
+def _long_reps(rep_km: int, reps: int, target: str) -> Repeat:
+    return Repeat(
+        reps,
+        (
+            Step("快跑" if target == "quality" else LABELS[target], km=rep_km, target=target),
+            Step("慢跑恢復", km=REP_RECOVERY_KM, target="recovery"),
+        ),
+    )
+
+
+def _long_reps_day(
+    km: int, rep_km: int, reps: int, target: str, targets: Targets
+) -> tuple[str, tuple[Step | Repeat, ...]]:
+    """半馬課表的長趟：2-3K 一趟，練的是把閾值或比賽配速撐久。"""
+    name = "" if target == "quality" else f"{LABELS[target]} "
+    used = WARMUP_KM + reps * (rep_km + REP_RECOVERY_KM)
+    cooldown = _cooldown(km, used)
+    title = (
+        f"{km}K：熱身 {WARMUP_KM}K + {name}{rep_km}K x {reps}"
+        f"{_at(targets, target)}（組間慢跑 400m）+ 收操"
+    )
+    return title, (_warmup(), _long_reps(rep_km, reps, target), cooldown)
+
+
 def _easy_with_strides(km: int) -> tuple[Step | Repeat, ...]:
     return (Step("輕鬆跑", km=km, target="easy"), STRIDES)
 
@@ -203,6 +227,11 @@ def _quality(
         title = f"輕鬆跑 {km}K{_suffix(targets, 'easy')} + 跑姿喚醒 4 組 20 秒"
         note = "基礎期不追強度，喚醒只是讓腳感醒著。"
         steps = _easy_with_strides(km)
+    elif phase == "build" and race_pace == "half_marathon" and progress >= 0.34:
+        # 半馬要的是把閾值配速撐久：建構期後段從 1K 拉長到 2K、3K。
+        rep_km = 2 if progress < 0.67 else 3
+        title, steps = _long_reps_day(km, rep_km, 2, "quality", targets)
+        note = "拉長每趟距離，配速和 1K 間歇差不多就好，最後一趟要跑得跟第一趟一樣穩。"
     elif phase == "build":
         reps = _reps(km, ceiling=4 + int(round(progress * 4)))
         title = (
@@ -216,7 +245,10 @@ def _quality(
             _cooldown(km, WARMUP_KM + reps * REP_WITH_RECOVERY_KM),
         )
     elif phase == "specific":
-        if progress < 0.34:
+        if progress < 0.34 and race_pace == "half_marathon":
+            title, steps = _long_reps_day(km, 3, 2, race_pace, targets)
+            note = "第一次成段練比賽配速，組間短休只是喘口氣，重點是配速穩定。"
+        elif progress < 0.34:
             reps = _reps(km)
             title = (
                 f"{km}K：熱身 {WARMUP_KM}K + 1K x {reps}"
@@ -274,12 +306,18 @@ def _quality(
     return DailyWorkout(day, "quality", title, duration, note, steps)
 
 
+# 半馬課表專項期長跑的最後幾公里改成比賽配速，依專項期進度遞增。
+HALF_FINISH_KM = (3, 4)
+
+
 def _long(
     index: int,
     km: int,
     phase: str,
     targets: Targets,
     note_override: str | None,
+    race_pace: str = "marathon",
+    progress: float = 0.0,
 ) -> DailyWorkout:
     notes = {
         "base": "以能聊天的節奏完成，先把距離穩定跑完。",
@@ -287,6 +325,20 @@ def _long(
         "specific": "超過 60 分鐘就照補給計畫吃，速度全程保持可控制。",
         "taper": "比前幾週再輕一點，只保留長跑腳感。",
     }
+    if phase == "specific" and race_pace == "half_marathon" and note_override is None:
+        finish = HALF_FINISH_KM[0] if progress < 0.5 else HALF_FINISH_KM[1]
+        return DailyWorkout(
+            WEEKDAY_NAMES[index],
+            "long",
+            f"長跑 {km}K{_suffix(targets, 'long_run')}，最後 {finish}K "
+            f"{LABELS[race_pace]}{_suffix(targets, race_pace)}",
+            duration_text(km, targets, "long_run"),
+            "前段照長跑的節奏，最後幾公里換成比賽配速，練的是累了還守得住配速；補給照計畫吃。",
+            (
+                Step("長跑", km=km - finish, target="long_run"),
+                Step(LABELS[race_pace], km=finish, target=race_pace),
+            ),
+        )
     return DailyWorkout(
         WEEKDAY_NAMES[index],
         "long",
@@ -323,7 +375,15 @@ def build_day(
             index, km, phase, phase_week, phase_length, targets, is_down_week, race_pace
         )
     if role == "long":
-        return _long(index, km, phase, targets, long_run_note)
+        return _long(
+            index,
+            km,
+            phase,
+            targets,
+            long_run_note,
+            race_pace,
+            _progress(phase_week, phase_length),
+        )
     raise ValueError(f"未知的角色：{role}")
 
 

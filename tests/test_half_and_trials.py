@@ -16,7 +16,7 @@ from plan.config import (
     from_dict,
 )
 from plan.intensity import equivalent_time, format_time
-from plan.workouts import Repeat
+from plan.workouts import Repeat, total_km
 
 TRIAL = TimeTrial(date(2027, 4, 15), 10.0)  # 星期四，主課日
 
@@ -151,3 +151,61 @@ def test_time_trial_week_headline_matches_the_actual_total(half):
     assert week.weekly_km_text in week.focus
     assert int(week.weekly_km_text.rstrip("K")) > planned
     assert f"{planned}K" not in week.focus
+
+
+def _quality_titles(plan, phase):
+    return [
+        day.title
+        for week in plan.weeks
+        if week.phase == phase
+        for day in week.days
+        if day.role == "quality"
+    ]
+
+
+def test_half_marathon_build_phase_lengthens_the_reps(half):
+    titles = _quality_titles(build(half), "build")
+    trained = [title for title in titles if " x " in title]
+
+    assert "1K x" in trained[0]
+    assert "2K x 2" in trained[-2]
+    assert "3K x 2" in trained[-1]
+
+
+def test_marathon_build_phase_keeps_1k_reps(plan):
+    titles = _quality_titles(plan, "build")
+
+    assert all("1K x" in title for title in titles if " x " in title)
+
+
+def test_half_marathon_specific_phase_starts_with_race_pace_reps(half):
+    first = _quality_titles(build(half), "specific")[0]
+
+    assert "半馬節奏 3K x 2" in first
+
+
+def test_half_marathon_long_runs_finish_at_race_pace(half):
+    plan = build(half)
+    longs = [
+        day
+        for week in plan.weeks
+        if week.phase == "specific"
+        for day in week.days
+        if day.role == "long"
+    ]
+
+    assert ["最後 3K 半馬節奏" in longs[0].title, "最後 4K 半馬節奏" in longs[-1].title] == [
+        True,
+        True,
+    ]
+    for day in longs:
+        planned = int(day.title.split()[1].split("K")[0])
+        assert total_km(day.steps) == planned
+        assert day.steps[-1].target == "half_marathon"
+
+
+def test_marathon_long_runs_stay_steady(plan):
+    for week in plan.weeks:
+        for day in week.days:
+            if day.role == "long":
+                assert "最後" not in day.title
