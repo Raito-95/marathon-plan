@@ -1,24 +1,29 @@
 {
   "race": {
-    "name": "11/15 半程馬拉松",
+    "name": "ZEPRO RUN 半程馬拉松（台南）",
     "date": "2026-11-15",
     "distance_km": 21.0975
   },
   "block": {
-    "weeks": 8,
-    "phases": { "base": 1, "build": 3, "specific": 3, "taper": 1 }
+    "weeks": 10,
+    "phases": {
+      "base": 2,
+      "build": 4,
+      "specific": 2,
+      "taper": 2
+    }
   },
   "volume": {
     "start_weekly_km": 32,
     "peak_weekly_km": 44,
-    "down_week_factor": 0.78,
-    "max_long_run_km": 18
+    "max_long_run_km": 20
   },
-  "week_template": [
-    "rest", "easy", "strength", "quality", "rest", "recovery", "long"
-  ],
+  "week_template": ["rest", "easy", "strength", "quality", "rest", "recovery", "long"],
   "tune_up_races": [],
   "time_trials": [
-    { "date": "2026-10-22", "distance_km": 10 }
+    {
+      "date": "2026-10-01",
+      "distance_km": 10
+    }
   ]
 }
